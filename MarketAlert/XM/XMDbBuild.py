@@ -5,7 +5,7 @@ from XMDb import XMDb, ManageTable, PriceTable
 from MT5Bind import nowJst, deltaMinute
 import setting_xm as setting
 
-class XMScraper:
+class XMDbBuild:
     def __init__(self, stock):
         self.stock = stock
         pass
