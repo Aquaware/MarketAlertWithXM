@@ -14,6 +14,8 @@ import matplotlib.gridspec as gridspec
 import calendar
 from ta.trend import SMAIndicator
 
+import TradeSimulation
+
 TIME = 'time'
 OPEN = 'open'
 HIGH = 'high'
@@ -27,6 +29,11 @@ BID = 'bid'
 ASK = 'ask'
 MID = 'mid'
 SPREAD = 'spread'
+
+
+THRESHOLD = 'threshold'
+DELAY = 'delay'
+LOSSCUT = 'loscut'
 
 def weekday(year, month, day):
     d = date(year, month, day)
@@ -154,8 +161,8 @@ def SMA(array, window):
     close = ind.sma_indicator()
     return close.values.tolist()
 
-def drawGraph(market, title, timeframe, tohlc, display_time_range):
-    fig = plt.figure(figsize=(18, 12)) 
+def drawGraph(market, title, timeframe, tohlc, display_time_range, trades):
+    fig = plt.figure(figsize=(14, 6)) 
     gs = gridspec.GridSpec(6, 1)   #縦,横
     ax1 = plt.subplot(gs[0:5, 0])
     ax2 = plt.subplot(gs[5:6, 0])
@@ -192,10 +199,22 @@ def drawGraph(market, title, timeframe, tohlc, display_time_range):
         if color is not None:
             graph1.drawLine(time, ma, color=color, label='MA' + str(w))
             
+    for trade in trades:
+        [status, topen, open_price, tclose, close_price, profit1, tpeak, peak_price, profit2] = trade
+        if status > 0:
+            color = 'green'
+            marker = '^'
+        else:
+            color = 'red'
+            marker = 'v'
+        graph1.drawMarker(topen, open_price, marker, color, markersize=10)
+        graph1.drawMarker(tpeak, peak_price, 'x', color, markersize=10)
+            
+            
     flag = []
     for o, c in zip(open, close):
         try:
-            v = (c - o) / o
+            v = (c - o) / o * 100.0
         except:
             v = 0
         flag.append(v)
@@ -203,8 +222,8 @@ def drawGraph(market, title, timeframe, tohlc, display_time_range):
     graph2 = BandPlot(fig, ax2, 'Flag')
     graph2.xlimit(t_range)
     graph2.drawLine(time, flag, timerange=t_range)
-    ax1.legend()
-    ax2.legend()
+    #ax1.legend()
+    #ax2.legend()
 
 def priceRange(ohlc):
     p = []
@@ -258,7 +277,10 @@ def dayRange(year, month):
         tend = datetime(year, month + 1, 1)
     days = []
     for day in range(1, 32):
-        t = datetime(year, month, day)
+        try:
+            t = datetime(year, month, day)
+        except:
+            break
         if t < tend:
             days.append(day)
         else:
@@ -287,7 +309,6 @@ def filterLower(array, threshold):
         if v < threshold:
             out.append(v)
     return out
-
     
 def rangeHistogram(market, timeframe):
     for year in [2019, 2020, 2021]:
@@ -347,7 +368,6 @@ def longBarLowerStrategy(market, timeframe, threshold, after_minutes):
             begin = None
             for i, (t, o, c) in enumerate(longBar):
                 if i == 0:
-                    
                     begin = [t, c]
                     print('Begin: t: ', t, 'Range: ', (c - o) / o * 100, 'Close:', c)
             
@@ -388,9 +408,9 @@ def test1():
     timeframe = Timeframe("M10")
     year = 2021
     month = 10
-    show(market, timeframe, year, month)    
+    show(market, timeframe, year, month)
     
-if __name__ == '__main__':
+def analyze():
     market = "CHNA50" #"US30" #WTI" #SPOT_GOLD" #"JP225"
     tf = "M5"
     timeframe = Timeframe(tf)
@@ -406,5 +426,39 @@ if __name__ == '__main__':
             out.append([market, tf, threshold, delay, profit])
 
     df = pd.DataFrame(data= out, columns=['Market', 'Timeframe', 'threshold', 'delay', 'profit'])
-    df.to_excel('./docs/' + market + '-LongBarStragegySummary.xlsx', index=False)
+    df.to_excel('./docs/' + market + '-LongBarStragegySummary.xlsx', index=False)    
+    
+    
+def trade():
+    market = "JP225" #"CHNA50" #"US30" #WTI" #SPOT_GOLD" #"JP225"
+    tf = "M5"
+    timeframe = Timeframe(tf)
+    data_time_range = [[8, 0], [7, 0]]
+    params =  [ {THRESHOLD: [0.25, 0.5], DELAY: 60,  LOSSCUT: 1.0},
+                {THRESHOLD: [-0.25, -0.5], DELAY: 60,  LOSSCUT: 1.0}]
+    out = []
+    for year in [2019]: #, 2020, 2021]:
+        for month in range(1, 13):
+            tohlc = importClickSec("../click_sec_data", market, year, month)
+            tohlc_dic = separate(tohlc, timeframe)
+            for day in dayRange(year, month):
+                date_str = str(year) + '-' + str(month) + '-' + str(day)
+                count, dic = timeFilter(tohlc_dic, year, month, day, data_time_range)
+                if count > 50:
+                    sim = TradeSimulation.Simulation(dic, timeframe, data_time_range)
+                    trades = []
+                    for param in params:
+                        profit, trade = sim.runLongBar(param)
+                        if len(trade) > 0:
+                            out += trade
+                            trades += trade
+                    title = market + " " + date_str                    
+                    drawGraph(market, title, timeframe, dic, data_time_range, trades)
+    #df = pd.DataFrame(data=out, columns=['Status', 'OpenTime', 'OpenPrice', 'CloseTime', 'ClosePrice', 'Profit1', 'MaxTime', 'MaxPrice', 'profit2'])
+    #df.to_excel('./docs/' + market + '-tradeSummary.xlsx', index=False)
+                    
+if __name__ == '__main__':
+    trade()
+    
+
     
