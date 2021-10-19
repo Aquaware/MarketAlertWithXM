@@ -7,7 +7,7 @@ Created on Sat Oct  9 21:37:12 2021
 
 import os
 import sys
-current_dir = os.path.abspath(os.path.dirname(__file__))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../common'))
 
 import pandas as pd
 import numpy as np
@@ -81,28 +81,24 @@ class Position():
                 else:
                     self.short(index, time, open, close)
             return None
-        
-        should_close = False        
+               
         if self.status == LONG:
             if low <= self.losscut_price:
-                should_close = True
+                return self.square(time, low)
             elif close > self.peak:
                 self.peak = close
                 self.peak_time = time
         elif self.status == SHORT:
             if high >= self.losscut_price:
-                should_close = True
+                return self.square(time, high)
             elif close < self.peak:
                 self.peak = close
                 self.peak_time = time
         
         if time >= self.time_limit:
-            should_close = True
-                
-        if should_close:
             return self.square(time, close)
-        else:
-            return None
+                
+
         
     def square(self, time, price):
         self.close_time = time

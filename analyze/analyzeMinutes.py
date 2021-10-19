@@ -2,7 +2,7 @@
 
 import os
 import sys
-current_dir = os.path.abspath(os.path.dirname(__file__))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../common'))
 
 import pandas as pd
 import numpy as np
@@ -411,7 +411,7 @@ def test1():
     show(market, timeframe, year, month)
     
 def analyze():
-    market = "CHNA50" #"US30" #WTI" #SPOT_GOLD" #"JP225"
+    market = "SPOT_GOLD" #"CHNA50" #"US30" #WTI" #SPOT_GOLD" #"JP225"
     tf = "M5"
     timeframe = Timeframe(tf)
     #rangeHistogram(market, timeframe)
@@ -430,12 +430,12 @@ def analyze():
     
     
 def trade():
-    market = "JP225" #"CHNA50" #"US30" #WTI" #SPOT_GOLD" #"JP225"
-    tf = "M5"
+    market = "SPOT_GOLD" #"JP225" #"CHNA50" #"US30" #WTI" #SPOT_GOLD" #"JP225"
+    tf = "M15"
     timeframe = Timeframe(tf)
     data_time_range = [[8, 0], [7, 0]]
-    params =  [ {THRESHOLD: [0.25, 0.5], DELAY: 60,  LOSSCUT: 1.0},
-                {THRESHOLD: [-0.25, -0.5], DELAY: 60,  LOSSCUT: 1.0}]
+    params =  [ {THRESHOLD: [0.25, 0.5], DELAY: 60,  LOSSCUT: 0.5},
+                {THRESHOLD: [-0.25, -0.5], DELAY: 60,  LOSSCUT: 0.5}]
     out = []
     for year in [2019]: #, 2020, 2021]:
         for month in range(1, 13):
